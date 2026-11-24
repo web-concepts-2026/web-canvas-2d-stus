@@ -23,6 +23,7 @@ stack<IObject>
 0. Research canvas 
 1. Visual part(without canvas)
 2. Button logic e.g. swapping between states 
-3. DRAW functionality
-4. ERASE, CLEAR, UNDO functionality 
-5. EXPLORE functionality
+3. Collor + size logic 
+4. DRAW functionality
+5. ERASE, CLEAR, UNDO functionality 
+6. EXPLORE functionality

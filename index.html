@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Drawing canvas</title>
+</head>
+<body>
+<section class="input_buttons">
+  <button class="draw" >Draw </button>
+  <button class="erase">Erase</button>
+  <button class="undo" >Undo </button>
+  <button class="clear">Clear</button>
+</section>
+<div class="drawing_section">
+    <section class = "color_size_buttons">
+        
+        <label for="volume">Volume:</label>
+        <input type="range" id="volume" name="volume" min="0" max="100" value="50" step="5" oninput="volumeOut.value = this.value">
+        <output id="volumeOut">50</output>
+
+        <label for="color-picker">Color:</label>
+        <input type="color" id="color-picker" value="#3b82f6">
+
+
+    </section>
+    <section class = "canvas">
+        <canvas>Smth</canvas>
+    </section>     
+</div>
+</body>
+</html>
