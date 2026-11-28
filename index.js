@@ -7,18 +7,11 @@ const stamp_btn = document.querySelector(".stamp")
 
 
 const color = document.getElementById("color_picker")
-const volume = document.getElementById("volume")
+const size = document.getElementById("size")
 
 
 const canvas = document.querySelector(".canvas canvas");
 const ctx = canvas.getContext("2d");
-
-ctx.canvas.width = canvas.clientWidth;
-ctx.canvas.height = canvas.clientHeight;
-
-ctx.lineCap = 'round'
-ctx.lineJoin = 'round'
-
 
 const CanvasState = {
     DRAW : "draw",
@@ -27,24 +20,27 @@ const CanvasState = {
 
 let canvasState = CanvasState.DRAW
 
-const DRAW_TYPE = {
+const DrawType = {
         DRAW: "draw",
         ERASE: "erase"
     }
 
-let currentType = DRAW_TYPE.DRAW
+let currentType = DrawType.DRAW
 
 
-const stateMachine = state()
+const stateMachine = state() // this is a state machine for drawing control (mouseup, mousedown, ...)
 
+
+// Shape stack, shapes and logic with them
 
 // [(x1,y1),(x2,y2),(x3,y3),...,(xn,yn),] => [(x1,y1),(x2,y2),(x3,y3),...,(xn,yn),(x,y)] + draw (xn,yn -> x, y)
 
-let line_shape = (x,y) => {
+let lineShape = (x,y) => {
+    
     return {    
         points : [[x,y]],
-        color : currentType == DRAW_TYPE.DRAW ? color.value : "white",
-        volume : volume.value,
+        color : currentType == DrawType.DRAW ? color.value : "white",
+        volume : size.value,
         AddPoint(x,y){
             ctx.strokeStyle = this.color
             ctx.lineWidth = this.volume
@@ -59,7 +55,6 @@ let line_shape = (x,y) => {
             
         }, 
         Draw() {
-            
             ctx.strokeStyle = this.color
             ctx.lineWidth = this.volume
             ctx.beginPath()
@@ -67,7 +62,7 @@ let line_shape = (x,y) => {
             let y0 = this.points[0][1]
 
             ctx.moveTo(x0,y0)
-
+            ctx.lineTo(x0 + 0.01,y0)
             for (let i = 1; i < this.points.length; i++) {
                 let x1 = this.points[i][0]
                 let y1 = this.points[i][1]
@@ -79,7 +74,8 @@ let line_shape = (x,y) => {
     }
 }
 
-let create_ying_yan = (x,y) => {
+let createYingYan = (x,y) => {
+    const radius = Math.max(10, Number(size.value));
     return {
         Draw() {
             
@@ -89,8 +85,6 @@ let create_ying_yan = (x,y) => {
                 ctx.arc(x, y, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
-
-            let radius = 50;
             circle(y, radius * 51/50 , 'black')
             circle(y, radius , 'white')
             ctx.fillStyle = 'black';
@@ -106,15 +100,16 @@ let create_ying_yan = (x,y) => {
 }
 
 
-let shape_stack = {
+let shapeStack = {
     stack : [], 
     AddPoint(x, y) {
         if (this.stack.length != 0)this.stack.at(-1).AddPoint(x,y);
     },
     CreateNewShape(x,y) {
         this.stack.push(
-            line_shape(x,y)
+            lineShape(x,y)
         )
+        this.ReDraw()
     },
     AddShape(shape) {
         this.stack.push(shape);
@@ -132,47 +127,28 @@ let shape_stack = {
         this.ReDraw();
     },
     Clear() {
-        this.stack = [];
-        this.ReDraw();
+        if (this.stack.length === 0) return;
+        this.AddShape({
+            Draw() {
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        });
     }
 
 }
 
+// End 
 
-function SetDraw() {
-    canvasState = CanvasState.DRAW
-    currentType = DRAW_TYPE.DRAW
-}
 
-function SetErase() {
-    canvasState = CanvasState.DRAW
-    currentType = DRAW_TYPE.ERASE
-}
-
-function SetUndo() {
-    shape_stack.UndoShape();
-}
-
-function SetClear() {
-    shape_stack.Clear();
-}
-
-function SetStampMode() {
-    canvasState = CanvasState.STAMP;
-}
-
-canvas.addEventListener("mousemove", function (event) {
+// State machine for drawing 
+function nextEvent(event){
     stateMachine.next(event)
-});
-canvas.addEventListener("mousedown", function (event) {
-    stateMachine.next(event)
-});
-canvas.addEventListener("mouseup", function (event) {
-    stateMachine.next(event)
-});
-window.addEventListener("mouseup", function (event) {
-    stateMachine.next(event)
-})
+}
+canvas.addEventListener("mousemove", (event) => nextEvent(event));
+canvas.addEventListener("mousedown", (event) => nextEvent(event));
+window.addEventListener("mouseup", (event) => nextEvent(event))
+
 function state() {
     const STATE = {
         IDLE: "idle",
@@ -184,13 +160,13 @@ function state() {
     return {
         next: (event) => {
             if (canvasState == CanvasState.STAMP && event.type == "mousedown"){
-                shape_stack.AddShape(create_ying_yan(event.offsetX, event.offsetY))
+                shapeStack.AddShape(createYingYan(event.offsetX, event.offsetY))
                 return
             }
             switch(event.type) {
                 case "mousemove":
                     if (currentState === STATE.DRAW) {
-                        shape_stack.AddPoint(event.offsetX, event.offsetY);
+                        shapeStack.AddPoint(event.offsetX, event.offsetY);
                     }
                     break;
                 case "mouseup":
@@ -201,7 +177,7 @@ function state() {
                 case "mousedown":
                     if (currentState === STATE.IDLE) {
                         currentState = STATE.DRAW;
-                        shape_stack.CreateNewShape(event.offsetX, event.offsetY)
+                        shapeStack.CreateNewShape(event.offsetX, event.offsetY)
                     }
                     break;
             }
@@ -209,10 +185,46 @@ function state() {
     }
 }
 
+// Control Buttons setup  
+function SetDraw() {
+    canvasState = CanvasState.DRAW
+    currentType = DrawType.DRAW
+}
+
+function SetErase() {
+    canvasState = CanvasState.DRAW
+    currentType = DrawType.ERASE
+}
+
+function SetUndo() {
+    shapeStack.UndoShape();
+}
+
+function SetClear() {
+    shapeStack.Clear();
+}
+
+function SetStampMode() {
+    canvasState = CanvasState.STAMP;
+}
 
 
-draw_btn.addEventListener("click", () => SetDraw())
+
+draw_btn. addEventListener("click", () => SetDraw())
 erase_btn.addEventListener("click", () => SetErase())
-undo_btn.addEventListener("click", () => SetUndo())
+undo_btn. addEventListener("click", () => SetUndo())
 clear_btn.addEventListener("click", () => SetClear())
 stamp_btn.addEventListener("click", () => SetStampMode())
+
+// End
+
+// Canvas size check
+function resizeCanvas() {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    ctx.lineCap = 'round';   
+    ctx.lineJoin = 'round';
+    shapeStack.ReDraw();
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);

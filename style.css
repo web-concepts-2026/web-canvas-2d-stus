@@ -17,8 +17,12 @@ body {
     background-color: red;
     margin: 10px;
     padding: 10px;
+    border-radius: 10px;
     display: flex;
     flex-direction: column;
+    border-style: solid;
+    border-width: 5px;
+    border-color: black;
 }
 
 .input_buttons button {
@@ -36,17 +40,29 @@ body {
 
 .color_size_buttons {
     border-color: black;
+    border-width: 3px;
+    border-style: solid;
     background-color:green;
-    margin: 10px;
+    margin: 5px 10px;
     padding: 10px;
     align-items: center;
     max-height: 200px;
+    border-radius: 10px;
 }
+
+#sizeOut {
+    display: inline-block;
+    width: 3ch;
+    text-align: left;
+    margin-left: 0;
+    margin-right: 10px
+}
+
 
 .canvas {
     border-color: black;
     background-color: black;
-    margin: 10px;
+    margin: 5px 10px;
     padding: 10px;
     border-radius: 10px;
     display: flex;
