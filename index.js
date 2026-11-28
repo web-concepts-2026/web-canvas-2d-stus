@@ -3,6 +3,7 @@ const draw_btn = document.querySelector(".draw")
 const erase_btn = document.querySelector(".erase")
 const undo_btn = document.querySelector(".undo")
 const clear_btn = document.querySelector(".clear")
+const stamp_btn = document.querySelector(".stamp")
 
 
 const color = document.getElementById("color_picker")
@@ -19,9 +20,22 @@ ctx.lineCap = 'round'
 ctx.lineJoin = 'round'
 
 
+const CanvasState = {
+    DRAW : "draw",
+    STAMP : "stamp"
+}
+
+let canvasState = CanvasState.DRAW
+
+const DRAW_TYPE = {
+        DRAW: "draw",
+        ERASE: "erase"
+    }
+
+let currentType = DRAW_TYPE.DRAW
 
 
-const stateMachine = state(Draw,Idle)
+const stateMachine = state()
 
 
 // [(x1,y1),(x2,y2),(x3,y3),...,(xn,yn),] => [(x1,y1),(x2,y2),(x3,y3),...,(xn,yn),(x,y)] + draw (xn,yn -> x, y)
@@ -34,8 +48,8 @@ let line_shape = (x,y) => {
         AddPoint(x,y){
             ctx.strokeStyle = this.color
             ctx.lineWidth = this.volume
-            lastX = this.points.at(-1)[0]
-            lastY = this.points.at(-1)[1]
+            let lastX = this.points.at(-1)[0]
+            let lastY = this.points.at(-1)[1]
 
             ctx.beginPath();
             ctx.moveTo(lastX, lastY);
@@ -49,19 +63,45 @@ let line_shape = (x,y) => {
             ctx.strokeStyle = this.color
             ctx.lineWidth = this.volume
             ctx.beginPath()
-            x0 = this.points[0][0]
-            y0 = this.points[0][1]
+            let x0 = this.points[0][0]
+            let y0 = this.points[0][1]
 
             ctx.moveTo(x0,y0)
 
             for (let i = 1; i < this.points.length; i++) {
-                x1 = this.points[i][0]
-                y1 = this.points[i][1]
+                let x1 = this.points[i][0]
+                let y1 = this.points[i][1]
 
                 ctx.lineTo(x1,y1)
             }
             ctx.stroke()
         }
+    }
+}
+
+let create_ying_yan = (x,y) => {
+    return {
+        Draw() {
+            
+            function circle(y, radius, color) {
+                ctx.beginPath();
+                ctx.fillStyle = color;
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            let radius = 50;
+            circle(y, radius * 51/50 , 'black')
+            circle(y, radius , 'white')
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(x, y, radius, -Math.PI * .5, Math.PI * .5);
+            ctx.fill();
+            circle( radius / 2 + y, radius / 2, 'white');
+            circle(-radius / 2 + y, radius / 2, 'black');
+            circle( radius / 2 + y, radius / 8, 'black');
+            circle(-radius / 2 + y, radius / 8, 'white');
+                }
     }
 }
 
@@ -98,52 +138,29 @@ let shape_stack = {
 
 }
 
-const DRAW_TYPE = {
-        DRAW: "draw",
-        ERASE: "erase"
-    }
-
-let currentType = DRAW_TYPE.DRAW
 
 function SetDraw() {
-    console.log("Draw")
+    canvasState = CanvasState.DRAW
     currentType = DRAW_TYPE.DRAW
 }
 
 function SetErase() {
-    console.log("Erase")
+    canvasState = CanvasState.DRAW
     currentType = DRAW_TYPE.ERASE
 }
 
 function SetUndo() {
-    console.log("Undo")
     shape_stack.UndoShape();
 }
 
 function SetClear() {
-    console.log("Clear")
     shape_stack.Clear();
 }
 
-function Draw(event, color) {
-    x = event.offsetX
-    y = event.offsetY
-
-    ctx.strokeStyle = color.value
-    ctx.lineWidth = volume.value
-
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    lastX = x;
-    lastY = y;
+function SetStampMode() {
+    canvasState = CanvasState.STAMP;
 }
 
-function Idle(event) {
-    lastX = event.offsetX;
-    lastY = event.offsetY;    
-}
 canvas.addEventListener("mousemove", function (event) {
     stateMachine.next(event)
 });
@@ -156,7 +173,7 @@ canvas.addEventListener("mouseup", function (event) {
 window.addEventListener("mouseup", function (event) {
     stateMachine.next(event)
 })
-function state(onDraw, onIdle) {
+function state() {
     const STATE = {
         IDLE: "idle",
         DRAW: "draw",
@@ -166,6 +183,10 @@ function state(onDraw, onIdle) {
 
     return {
         next: (event) => {
+            if (canvasState == CanvasState.STAMP && event.type == "mousedown"){
+                shape_stack.AddShape(create_ying_yan(event.offsetX, event.offsetY))
+                return
+            }
             switch(event.type) {
                 case "mousemove":
                     if (currentState === STATE.DRAW) {
@@ -194,3 +215,4 @@ draw_btn.addEventListener("click", () => SetDraw())
 erase_btn.addEventListener("click", () => SetErase())
 undo_btn.addEventListener("click", () => SetUndo())
 clear_btn.addEventListener("click", () => SetClear())
+stamp_btn.addEventListener("click", () => SetStampMode())
